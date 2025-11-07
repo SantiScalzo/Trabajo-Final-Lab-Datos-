@@ -1,0 +1,56 @@
+import pandas as pd
+import glob
+import os
+
+# 1. Define la ruta y el patrón de los archivos
+# NOTA: Asegúrate de que esta ruta sea correcta en tu sistema
+carpeta_archivos = r'C:\Users\scalz\Documents\Documentos\Lab_Datos\TPfinal\Archivos_xlsx'
+archivos_xlsx = glob.glob(os.path.join(carpeta_archivos, '*.xlsx'))
+
+# 2. Lista para almacenar los DataFrames de todas las hojas
+# En esta lista se almacenará el contenido de cada hoja por separado.
+lista_dataframes = []
+
+# 3. Itera sobre cada archivo y luego sobre cada hoja
+print(f"Buscando archivos en: {carpeta_archivos}")
+print("Iniciando la lectura de archivos y hojas...")
+
+for archivo in archivos_xlsx:
+    # Lee todas las hojas del archivo en un diccionario de DataFrames
+    datos_por_hoja = pd.read_excel(archivo, sheet_name=None)
+    
+    # Itera sobre el diccionario
+    for nombre_hoja, df_hoja in datos_por_hoja.items():
+        # OPCIONAL: Agrega columnas de fuente (muy útil para la trazabilidad)
+        df_hoja['Fuente_Archivo'] = os.path.basename(archivo)
+        df_hoja['Fuente_Hoja'] = nombre_hoja
+        
+        # Almacena el DataFrame de la hoja en la lista
+        lista_dataframes.append(df_hoja)
+
+# 4. Concatena todos los DataFrames de la lista en uno solo
+# Aquí es donde ocurre la magia de la unión (stacking o apilamiento de filas)
+if lista_dataframes:
+    print(f"\nTotal de hojas/DataFrames encontrados: {len(lista_dataframes)}")
+    print("Iniciando la concatenación...")
+    
+    # pd.concat() une todos los DataFrames en la lista por filas.
+    # ignore_index=True reinicia el índice de 0 a N para el archivo final.
+    df_consolidado = pd.concat(lista_dataframes, ignore_index=True)
+
+    # 5. Guarda el resultado consolidado en un nuevo archivo DENTRO DE LA MISMA CARPETA
+    nombre_salida = os.path.join(carpeta_archivos, 'Resultado_Consolidado.xlsx')
+    
+    # Guardamos el DataFrame consolidado en un nuevo archivo Excel
+    # index=False asegura que no se guarde el índice de filas de pandas como una columna.
+    df_consolidado.to_excel(nombre_salida, index=False)
+
+    print("\n-------------------------------------------")
+    print("¡Proceso completado! Archivo consolidado guardado.")
+    print(f"Los datos unidos están en: {nombre_salida}")
+    print(f"Total de filas consolidadas: {len(df_consolidado)}")
+    print("-------------------------------------------")
+else:
+    print("\n-------------------------------------------")
+    print("¡Advertencia! No se encontraron archivos .xlsx en la ruta especificada.")
+    print("-------------------------------------------")
