@@ -169,10 +169,10 @@ def run_pipeline_from_excel_url(
     important_features = ['Frio (Kw)', 'Frio_roll_mean_7_lag1', 'Sala Maq (Kw)', 'Envasado (Kw)', 'Frio_roll_mean_14_lag1', 'Servicios (Kw)', 'Prod Agua (Kw)', 'KW Gral Planta', 'Linea 2 (Kw)', 'CO 2 / Hl', 'EE Caldera / Hl', 'Cocina (Kw)', 'ET Linea 5/Hl', 'VAPOR DE LINEA 4 KG', 'Linea 3 (Kw)', 'Resto Serv (Kw)', 'Conversion Kg/Mj', 'Restos Planta (Kw)', 'Hl Cerveza L2', 'Frio_roll_mean_3_lag1']
     X_test = X_test[important_features]
     
-    X_train = pd.read_csv("X_train.csv")
+    X_train = pd.read_csv("x_train.csv")
     y_train = pd.read_csv("y_train.csv")
-    X_val = pd.read_csv("X_val.csv")
-    y_val = pd.read_csv("y_val.csv")
+    X_val = pd.read_csv("x_test.csv")
+    y_val = pd.read_csv("y_test.csv")
 
     X_train = pd.concat([X_train, X_val], ignore_index=True)
     y_train = pd.concat([y_train, y_val], ignore_index=True)
