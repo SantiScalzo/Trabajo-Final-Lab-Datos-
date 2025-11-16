@@ -1,0 +1,82 @@
+{
+    "foundational_dataset.csv": {
+        "descripcion": "Dataset unificado. Contiene los datos diarios (última hora de cada día) de 2020 a 2023",
+        "script_fuente": "foundational_dataset.ipynb",
+        "fecha_generacion": "2025-11-16T19:34:00Z",
+        "fuentes_de_datos": [
+            "data/Archivos_xlsx/Planta_2020_2021.xlsx",
+            "data/Archivos_xlsx/Planta_2021_2022.xlsx",
+            "data/Archivos_xlsx/Planta_2023.xlsx"
+        ],
+        "transformaciones_clave": [
+            "Unificación de 3 archivos Excel en un solo DataFrame.",
+            "Limpieza de nombres de columnas (minúsculas, sin espacios, sin caracteres especiales).",
+            "Conversión de 'fecha_hora' a índice de datetime.",
+            "Conversión de todas las columnas de métricas a tipo numérico.",
+            "Agregación de datos horarios a diarios: se seleccionó el último valor de cada día."
+        ]
+    },
+    "x_train.csv": {
+        "descripcion": "Conjunto de features de entrenamiento (primer 70% temporal). Datos limpios, imputados y con selección de variables.",
+        "script_fuente": "eda_and_preprocessing.ipynb",
+        "fecha_generacion": "2025-11-16T19:47:00Z",
+        "fuentes_de_datos": [
+            "foundational_dataset.csv"
+        ],
+        "transformaciones_clave": [
+            "Creación de features de lag (diff1, diff7) y rolling (mean/std 3, 7, 14, 28 días).",
+            "Split temporal 70/30 (Este es el 70% de train).",
+            "Detección de outliers (MAD Z=3.5) convertidos a NaN.",
+            "Eliminación de columnas con > 95% de NaN.",
+            "Escalado de datos con RobustScaler (ajustado en train).",
+            "Imputación de valores faltantes con KNNImputer (k=5, weights='distance').",
+            "Transformación inversa del escalado.",
+            "Eliminación de columnas con baja varianza (CV < 0.1).",
+            "Eliminación de columnas con baja correlación (|Pearson| y |Spearman| < 0.3) con el target."
+        ]
+    },
+    "x_test.csv": {
+        "descripcion": "Conjunto de features de prueba (último 30% temporal). Procesado con los mismos artefactos (scaler, imputer, bounds) que train.",
+        "script_fuente": "eda_and_preprocessing.ipynb",
+        "fecha_generacion": "2025-11-16T19:47:00Z",
+        "fuentes_de_datos": [
+            "foundational_dataset.csv"
+        ],
+        "transformaciones_clave": [
+            "Creación de features de lag (diff1, diff7) y rolling (mean/std 3, 7, 14, 28 días).",
+            "Split temporal 70/30 (Este es el 30% de test).",
+            "Aplicación de límites de outliers de train (convertidos a NaN).",
+            "Eliminación de las mismas columnas que en train (> 95% NaN).",
+            "Aplicación de RobustScaler (ajustado en train).",
+            "Aplicación de KNNImputer (ajustado en train).",
+            "Transformación inversa del escalado.",
+            "Eliminación de las mismas columnas que en train (Low Variance, Low Correlation)."
+        ]
+    },
+    "y_train.csv": {
+        "descripcion": "Variable objetivo (target) para el conjunto de entrenamiento (primer 70% temporal).",
+        "script_fuente": "eda_and_preprocessing.ipynb",
+        "fecha_generacion": "2025-11-16T19:47:00Z",
+        "fuentes_de_datos": [
+            "foundational_dataset.csv"
+        ],
+        "transformaciones_clave": [
+            "Columna 'Frio (Kw)' de 'foundational_dataset.csv'.",
+            "Aplicación de .shift(-1) para definir el objetivo (predecir D+1).",
+            "Split temporal 70/30 (Este es el 70% de train)."
+        ]
+    },
+    "y_test.csv": {
+        "descripcion": "Variable objetivo (target) para el conjunto de prueba (último 30% temporal).",
+        "script_fuente": "eda_and_preprocessing.ipynb",
+        "fecha_generacion": "2025-11-16T19:47:00Z",
+        "fuentes_de_datos": [
+            "foundational_dataset.csv"
+        ],
+        "transformaciones_clave": [
+            "Columna 'Frio (Kw)' de 'foundational_dataset.csv'.",
+            "Aplicación de .shift(-1) para definir el objetivo (predecir D+1).",
+            "Split temporal 70/30 (Este es el 30% de test)."
+        ]
+    }
+}
