@@ -45,11 +45,11 @@ def train_and_save_pipeline(
     print("Iniciando entrenamiento del pipeline...")
 
     # --- 1. Cargar Datos de Entrenamiento ---
-    try:
-        X_train_csv = pd.read_csv("../data\processed\splits\x_train.csv")
-        y_train_csv = pd.read_csv("../data\processed\splits\y_train.csv")
-        X_val_csv = pd.read_csv("../data\processed\splits\x_test.csv") # Renombrado en tu script
-        y_val_csv = pd.read_csv("../data\processed\splits\y_test.csv") # Renombrado en tu script
+    try: 
+        X_train_csv = pd.read_csv("data/processed/splits/x_train.csv")
+        y_train_csv = pd.read_csv("data/processed/splits/y_train.csv")
+        X_val_csv = pd.read_csv("data/processed/splits/x_test.csv") # Renombrado en tu script
+        y_val_csv = pd.read_csv("data/processed/splits/y_test.csv") # Renombrado en tu script
     except FileNotFoundError as e:
         print(f"Error: No se encontró el archivo CSV: {e.filename}")
         print("Asegúrate de tener x_train.csv, y_train.csv, x_test.csv, y_test.csv")

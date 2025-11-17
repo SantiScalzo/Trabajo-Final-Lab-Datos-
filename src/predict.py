@@ -45,7 +45,7 @@ def preparar_hoja(df: pd.DataFrame, nombre_hoja: str) -> pd.DataFrame:
 
 def run_prediction_from_excel(
     url: str,
-    pipeline_path: str = "../models/pipeline_artifacts.pkl"
+    pipeline_path: str = "models/pipeline_artifacts.pkl"
 ) -> pd.DataFrame: # <-- Cambiado el tipo de retorno
     """
     Carga el pipeline de artefactos guardados y los aplica a un
@@ -212,8 +212,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "--pipeline",
         type=str,
-        default="../models/pipeline_artifacts.pkl",
-        help="Ruta al archivo .pkl o .joblib del pipeline guardado (default: ../models/pipeline_artifacts.pkl)"
+        default="models/pipeline_artifacts.pkl",
+        help="Ruta al archivo .pkl o .joblib del pipeline guardado (default: models/pipeline_artifacts.pkl)"
     )
     
     args = parser.parse_args()
