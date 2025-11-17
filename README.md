@@ -1,75 +1,273 @@
-**Resumen**
-- Proyecto de modelado predictivo de consumo/energía a partir de planillas Excel con múltiples hojas "Consolidado". Integra un pipeline reproducible de preparación de datos, ingeniería de características, tratamiento de outliers y nulos, entrenamiento y evaluación de modelos (Random Forest, XGBoost, LightGBM), además de EDA detallado y registro de experimentos.
 
-**Estructura**
-- Código principal: `pipeline.py:1`
-- Notebooks: `eda.ipynb`, `modelado.ipynb`, `foundational_dataset.ipynb`
-- Resultados y logs: `results/`
-- Requerimientos: `requirements.txt`
 
-**Datos**
-- Fuente: archivo Excel con múltiples hojas; se usan solo hojas cuyo nombre inicia con "Consolidado".
-- Llave temporal: se construye `FECHA_HORA` a partir de `DIA`+`HORA` o de la columna `FECHA_HORA` si ya existe.
-- Target: `Frio (Kw)`; en inferencia se predice el valor del día siguiente (shift -1) a partir de features del pasado.
+# Predicción de Consumo de Frío en Planta Cervecera
 
-**Preparación de Hojas**
-- Función `preparar_hoja(...)` en `pipeline.py:20`:
-  - Normaliza timestamps a `FECHA_HORA` (conversión robusta desde `DIA`/`HORA`).
-  - Elimina nulos en `FECHA_HORA` y agrega duplicados por `FECHA_HORA` (numéricas='mean', otras='first').
-  - Devuelve 1 fila por timestamp y reporta duplicados para diagnóstico.
+Este proyecto implementa un sistema completo para predecir el consumo energético de refrigeración (Frío en kW) en una planta cervecera, utilizando datos operativos históricos y un pipeline de Machine Learning reproducible.
 
-**Construcción del Dataset**
-- Función `run_pipeline_from_excel_url(...)` en `pipeline.py:100`:
-  - Lee Excel (`pandas.read_excel`) y filtra hojas "Consolidado".
-  - Merge outer por `FECHA_HORA` de todas las hojas y orden temporal.
-  - Selecciona la última medición por día (idxmax de `FECHA_HORA` por fecha).
-  - Ingeniería de variables sobre `Frio (Kw)` con lags y rolling means/std (3, 7, 14, 28).
-  - Define `y_test` como `Frio (Kw)` desplazado -1 (predicción del siguiente valor).
+---
 
-**Entrenamiento vs. Inferencia**
-- Train/val históricos: se cargan de CSVs en raíz `x_train.csv`, `y_train.csv`, `x_test.csv`, `y_test.csv` para entrenar y consolidar (`pipeline.py:139`).
-- Test de producción: se arma a partir del Excel procesado (features alineadas con train).
-- Conjunto de features: lista fija `important_features` (ajustar según disponibilidad en train/test).
+## Inicio Rápido
 
-**Tratamiento de Outliers y Nulos**
-- Bounds por MAD por columna (fallback a percentiles amplios si MAD=0) `pipeline.py:56`.
-- Reemplazo cell-wise a NaN si está fuera de [low, high].
-- Escalado robusto (`RobustScaler`) + imputación KNN en espacio escalado, luego inverse-transform a escala original `pipeline.py:220`.
+### Prerrequisitos
 
-**Transformaciones y Modelo**
-- Transformación `PowerTransformer(method='yeo-johnson')` sobre X antes del modelo.
-- Modelo principal cargado: `RandomForestRegressor` con hiperparámetros optimizados `pipeline.py:242`.
-- Métricas reportadas: MSE, RMSE, MAE, R² sobre el test de Excel.
+Instalar dependencias:
 
-**EDA y Experimentos**
-- `eda.ipynb`: distribución de variables, outliers (LOF), imputación (KNN), escalado (Robust/Standard), correlaciones (Spearman), clustering de correlación, VIF, winsorización.
-- `modelado.ipynb`: pipelines con `PowerTransformer`/`StandardScaler`, `RandomForest`, `Ridge/Lasso`, `XGBoost`, `LightGBM` con early stopping; tuning con Optuna (TPE + pruners); validación temporal (`TimeSeriesSplit`).
-- Registros y artefactos en `results/`:
-  - Logs: `results/experiment_logs.csv`
-  - Resúmenes: `results/experiment_summary_*.md`
-  - Figuras y métricas: importancia de features, residuales, predicción vs. verdad para RF y XGBoost (archivos `*.png`, `*.csv`).
+```bash
+pip install -r requirements.txt
+```
 
-**Cómo Ejecutar**
-- Requisitos:
-  - Python 3.9+ y `pip`.
-  - Instalar dependencias: `pip install -r requirements.txt`.
-- Notebooks:
-  - Abrir `eda.ipynb` y `modelado.ipynb` en Jupyter/VS Code y ejecutar celdas.
-- Pipeline desde Python:
-  - Preparar `x_train.csv`, `y_train.csv`, `x_test.csv`, `y_test.csv` en la raíz con las columnas esperadas (incluyendo `important_features`).
-  - Llamar:
-    - `from pipeline import run_pipeline_from_excel_url`
-    - `mae = run_pipeline_from_excel_url("ruta/o/url/al.xlsx", random_state=42)`
-  - El pipeline imprime métricas y devuelve el MAE del test armado desde Excel.
+---
 
-**Estructura de Resultados**
-- Figuras y CSVs de cada experimento se guardan con prefijo de timestamp, por ejemplo:
-  - `results/20251110_030137_RandomForest_*`
-  - `results/20251110_052302_XGBoost_*`
-- Resumen global: `results/experiment_logs.csv` centraliza métricas por corrida.
+## Uso del Script de Predicción
 
-**Supuestos y Requisitos de Datos**
-- Excel con hojas "Consolidado*" que comparten una columna temporal convertible a `FECHA_HORA`.
-- Columnas usadas por `important_features` disponibles y consistentes entre train y test.
-- `openpyxl` instalado para lectura de Excel.
+El script `src/predict.py` permite generar predicciones de consumo de frío (kW) a partir de un archivo Excel en formato adecuado.
 
+### Sintaxis básica
+
+```bash
+python src/predict.py <ruta_al_archivo.xlsx>
+```
+
+### Ejemplos
+
+1. Predicción con archivo local
+
+   ```bash
+   python src/predict.py data/Archivos_xlsx/Planta_2023.xlsx
+   ```
+
+2. Predicción con archivo externo
+
+   ```bash
+   python src/predict.py C:/datos/nuevos_datos.xlsx
+   ```
+
+3. Mostrar ayuda
+
+   ```bash
+   python src/predict.py --help
+   ```
+
+---
+
+## Formato de Entrada Requerido
+
+El archivo Excel debe incluir:
+
+* Hojas cuyo nombre comience con `"Consolidado"`
+  Ejemplos: `Consolidado KPI`, `Consolidado EE`, `Consolidado Agua`, etc.
+* Columnas temporales:
+
+  * `DIA` y `HORA`, o
+  * `FECHA_HORA`
+* Variables operativas: consumo energético, producción, aire, vapor, servicios, etc.
+
+### El script automáticamente:
+
+1. Fusiona todas las hojas *Consolidado*
+2. Selecciona la última medición de cada día
+3. Genera features de lags y rolling windows
+4. Aplica un pipeline completo (outliers, escalado, imputación, etc.)
+5. Predice el consumo de frío del día siguiente
+
+---
+
+## Salida del Script
+
+Si el Excel contiene datos históricos, se mostrarán métricas y se generará un archivo CSV:
+
+### Ejemplo de salida
+
+```
+=== Métricas de Predicción (Test) ===
+MAE : 125.43
+R²  : 0.8542
+```
+
+Archivo generado: `predicciones_excel.csv`
+
+```csv
+FECHA_HORA,prediccion,y_true
+2023-03-06 23:59:00,1234.56,1245.32
+2023-03-07 23:59:00,1289.45,1298.76
+...
+```
+
+---
+
+## Notas Importantes
+
+* Primer uso: ejecutar
+
+  ```bash
+  python src/train_model.py
+  ```
+
+  para generar `models/pipeline_artifacts.pkl`.
+
+* Las primeras filas pueden no tener predicción por falta de historial (lags 1–28 días).
+
+* El modelo requiere las mismas columnas con las que fue entrenado; si faltan, se rellenan con `NaN`.
+
+---
+
+# Contexto General del Proyecto
+
+## Objetivo
+
+Construir un sistema de predicción robusto y reproducible para estimar el consumo de frío del día siguiente en una planta cervecera a partir de series temporales multivariadas.
+
+---
+
+# Estructura del Proyecto
+
+```
+proyecto/
+│
+├── data/
+│   ├── Archivos_xlsx/               # Archivos Excel 2020-2023
+│   └── processed/
+│       ├── foundational_dataset.csv # Dataset unificado diario
+│       ├── splits/                  # Train/test
+│       └── data_lineage.json        # Documentación del pipeline
+│
+├── models/
+│   └── pipeline_artifacts.pkl       # Pipeline entrenado (pre + modelo)
+│
+├── notebooks/
+│   ├── foundational_dataset.ipynb   # Construcción dataset base
+│   ├── eda.ipynb                    # Exploración y limpieza
+│   └── modelado.ipynb               # Tuning y evaluación
+│
+├── src/
+│   ├── train_model.py               # Entrenamiento completo
+│   └── predict.py                   # Script de inferencia
+│
+├── results/                         # Logs, gráficos, métricas
+├── requirements.txt
+└── README.md
+```
+
+---
+
+# Pipeline de Datos
+
+## 1. Preparación de Datos (`foundational_dataset.ipynb`)
+
+* Fuente: archivos Excel con hojas *Consolidado*
+* Proceso:
+
+  * Unión por timestamp (`FECHA_HORA`)
+  * Agregación diaria tomando la última medición del día
+  * Limpieza de nombres
+  * Features cíclicos (mes, día de semana → seno/coseno)
+
+Salida: `foundational_dataset.csv`
+(1190 días diarios entre 2020 y 2023)
+
+---
+
+## 2. Ingeniería de Características
+
+Características generadas para predecir Frio (kW):
+
+* Lags: `Frio_diff1_lag1`, `Frio_diff7_lag1`
+* Rolling windows: medias y std de ventanas de 3, 7, 14 y 28 días
+* Target: `Frio (Kw)` desplazado -1 día
+
+---
+
+## 3. Preprocesamiento (`eda.ipynb`)
+
+El pipeline incluye:
+
+1. Detección de outliers — MAD (Z=3.5)
+2. Escalado — `RobustScaler`
+3. Imputación — `KNNImputer (k=5, distance)`
+4. Normalización — `PowerTransformer (Yeo-Johnson)`
+5. Selección de features — top 20 por varianza y correlación
+
+---
+
+## 4. Modelado (`modelado.ipynb`)
+
+### Modelos evaluados:
+
+* RandomForest
+* XGBoost
+* LightGBM
+* Ridge/Lasso
+
+### Optimización:
+
+* Optuna (TPE + pruners)
+* Validación temporal (TimeSeriesSplit)
+
+### Modelo final: RandomForestRegressor
+
+* `n_estimators: 1183`
+* `max_depth: 16`
+* `max_features: 1.0`
+
+Resultados:
+
+* MAE ≈ 125 kW
+* R² ≈ 0.85
+
+---
+
+# Características del Sistema
+
+* Reproducible: pipeline serializado completo
+* Robusto: manejo de outliers, NA, duplicados
+* Trazable: logs de experimentos en `results/`
+* Flexible: acepta nuevos Excel sin modificar código
+* Interpretación: importancia de features y análisis residual
+
+---
+
+# Variables Más Importantes
+
+1. Frio_roll_mean_7_lag1
+2. Frio (Kw)
+3. Frio_roll_mean_14_lag1
+4. Sala Maq (Kw)
+5. Envasado (Kw)
+6. Servicios (Kw)
+7. KW Gral Planta
+8. Linea 2 (Kw)
+9. CO2 / Hl
+10. Prod Agua (Kw)
+
+---
+
+# Limitaciones
+
+* 23 días faltantes en datos históricos
+* Lags iniciales: primeras 28 filas sin predicción
+* Eventos operativos extraordinarios pueden no estar representados
+
+---
+
+# Cómo Entrenar el Modelo
+
+```bash
+# (Opcional) Regenerar dataset base
+jupyter notebook notebooks/foundational_dataset.ipynb
+
+# Entrenar pipeline completo
+python src/train_model.py
+```
+
+Generará:
+`models/pipeline_artifacts.pkl`
+
+---
+
+# Experimentación
+
+* EDA: `notebooks/eda.ipynb`
+* Modelos y tuning: `notebooks/modelado.ipynb`
+* Resultados: gráficos, residuales y métricas en `results/`
+
+---

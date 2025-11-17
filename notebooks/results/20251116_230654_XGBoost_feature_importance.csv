@@ -1,0 +1,21 @@
+feature,importance
+Frio_roll_mean_7_lag1,0.34663182
+Sala Maq (Kw),0.19432382
+Frio (Kw),0.13455945
+Envasado (Kw),0.11242905
+Frio_roll_mean_14_lag1,0.11236131
+Frio_roll_std_7_lag1,0.063262284
+Pta Agua / Eflu (Kw),0.013670794
+Frio_roll_mean_28_lag1,0.010712323
+EE Sala Maq / Hl,0.0065632663
+KW Gral Planta,0.0016056048
+mes_cos,0.00095225545
+Prod Agua (Kw),0.0007662054
+ET Bodega/Hl,0.00050100754
+Servicios (Kw),0.00043914167
+Resto Serv (Kw),0.0002369024
+Linea 3 (Kw),0.00023520901
+ET Servicios / Hl,0.00022304387
+Hl Cerveza L4,0.00019120236
+Agua Bodega (Hl),0.00016782814
+Frio_roll_std_28_lag1,0.00016731367
